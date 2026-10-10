@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apex 运行指标</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #262b36;
+    --text: #e6e8ee; --muted: #8b93a7; --ok: #2fbf71; --warn: #f0b429; --critical: #e5484d; --accent: #4c8dff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0; }
+  .pill { padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid transparent; }
+  .pill.ok { color: var(--ok); border-color: rgba(47,191,113,.4); background: rgba(47,191,113,.1); }
+  .pill.warning { color: var(--warn); border-color: rgba(240,180,41,.4); background: rgba(240,180,41,.1); }
+  .pill.critical { color: var(--critical); border-color: rgba(229,72,77,.45); background: rgba(229,72,77,.12); }
+  .meta { color: var(--muted); font-size: 12px; margin-left: auto; }
+  button { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  .banner { display: none; margin-bottom: 18px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); }
+  .banner.show { display: block; }
+  .banner.critical { border-color: rgba(229,72,77,.5); background: rgba(229,72,77,.08); }
+  .banner.warning { border-color: rgba(240,180,41,.45); background: rgba(240,180,41,.07); }
+  .banner ul { margin: 8px 0 0; padding-left: 18px; }
+  .banner li { margin: 2px 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .card .label { color: var(--muted); font-size: 12px; }
+  .card .value { font-size: 26px; font-weight: 600; margin-top: 6px; letter-spacing: .3px; }
+  .card .value small { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+  h2 { font-size: 13px; color: var(--muted); font-weight: 600; margin: 28px 0 10px; text-transform: uppercase; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); padding: 12px 0; }
+  .error { color: var(--critical); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Apex 运行指标</h1>
+    <span id="status" class="pill ok">加载中</span>
+    <span class="meta" id="meta">—</span>
+    <button id="refresh" type="button">立即刷新</button>
+  </header>
+
+  <div class="banner" id="banner"></div>
+  <div class="banner error" id="error"></div>
+
+  <div class="grid" id="cards"></div>
+
+  <h2>采样指标</h2>
+  <div id="gauges"><div class="empty">暂无采样数据。</div></div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var timer = null;
+  var LEVEL_TEXT = { ok: '正常', warning: '警告', critical: '严重' };
+
+  function num(value, digits) {
+    if (value === null || value === undefined) { return '—'; }
+    return Number(value).toFixed(digits === undefined ? 2 : digits);
+  }
+
+  function pct(value) { return (value * 100).toFixed(2) + '%'; }
+
+  // 毫秒比秒好读：大屏上没人愿意把 0.0032 换算成 3.2ms。
+  function ms(value) { return value === null || value === undefined ? '—' : (value * 1000).toFixed(1) + '<small>ms</small>'; }
+
+  function card(label, value) { return '<div class="card"><div class="label">' + label + '</div><div class="value">' + value + '</div></div>'; }
+
+  function renderCards(d) {
+    $('cards').innerHTML = [
+      card('QPS（本次间隔均值）', num(d.qps)),
+      card('请求数', d.requests),
+      card('错误率', pct(d.errorRate)),
+      card('错误数（4xx + 5xx）', d.errors),
+      card('P50 耗时', ms(d.p50Seconds)),
+      card('P95 耗时', ms(d.p95Seconds)),
+      card('P99 耗时', ms(d.p99Seconds)),
+      card('平均耗时', ms(d.avgSeconds)),
+      card('未捕获异常', d.unhandledExceptions),
+      card('连接池超时', d.poolTimeouts),
+      card('丢弃的指标序列', d.droppedSeries)
+    ].join('');
+  }
+
+  function renderGauges(list) {
+    if (!list || !list.length) {
+      $('gauges').innerHTML = '<div class="empty">暂无采样数据。</div>';
+      return;
+    }
+
+    var rows = list.map(function (g) {
+      var labels = Object.keys(g.labels || {}).map(function (k) { return k + '=' + g.labels[k]; }).join(', ');
+      return '<tr><td>' + g.name + '</td><td>' + (labels || '—') + '</td><td class="num">' + num(g.value) + '</td></tr>';
+    }).join('');
+
+    $('gauges').innerHTML = '<table><thead><tr><th>指标</th><th>标签</th><th class="num">值</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderAlerts(alerts) {
+    var banner = $('banner');
+    if (!alerts || !alerts.length) {
+      banner.className = 'banner';
+      banner.innerHTML = '';
+      return;
+    }
+
+    var worst = alerts.some(function (a) { return a.level.key === 'critical'; }) ? 'critical' : 'warning';
+    banner.className = 'banner show ' + worst;
+    banner.innerHTML = '<strong>已触发 ' + alerts.length + ' 项告警</strong><ul>' + alerts.map(function (a) {
+      return '<li>' + a.key + '：当前 ' + num(a.value, 4) + '（警告 ' + a.warning + ' / 严重 ' + a.critical + '）—— ' + a.level.name + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  function render(d) {
+    var level = (d.status && d.status.key) ? d.status.key : 'ok';
+    var pill = $('status');
+    pill.className = 'pill ' + level;
+    pill.textContent = (d.status && d.status.name) ? d.status.name : LEVEL_TEXT[level];
+
+    $('meta').textContent = '采样时间 ' + d.sampledAt
+      + '（间隔 ' + d.intervalSeconds + ' 秒，刷新 ' + d.refreshSeconds + ' 秒）'
+      + (d.hasBaseline ? '' : ' · 首次采样，速率类数值从下一次开始');
+
+    renderAlerts(d.alerts);
+    renderCards(d);
+    renderGauges(d.gauges);
+
+    if (timer) { clearInterval(timer); }
+    timer = setInterval(load, Math.max(1, d.refreshSeconds) * 1000);
+  }
+
+  function fail(message) {
+    var box = $('error');
+    box.className = 'banner show error';
+    box.textContent = message;
+  }
+
+  function load() {
+    fetch('/metrics/overview', { headers: { 'Accept': 'application/json' } })
+      .then(function (res) {
+        if (!res.ok) { throw new Error('HTTP ' + res.status); }
+        return res.json();
+      })
+      .then(function (body) {
+        $('error').className = 'banner error';
+        // 统一响应信封：真正的数据在 data 里。
+        render(body.data || {});
+      })
+      .catch(function (err) { fail('读取 /metrics/overview 失败：' + err.message); });
+  }
+
+  $('refresh').addEventListener('click', load);
+  load();
+})();
+</script>
+</body>
+</html>

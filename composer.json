@@ -1,0 +1,43 @@
+{
+    "name": "hyperf-apex/metrics",
+    "description": "Apex Prometheus metrics and monitoring on Swoole Table for Hyperf",
+    "type": "library",
+    "license": "Apache-2.0",
+    "keywords": [
+        "hyperf",
+        "swoole",
+        "apex",
+        "prometheus",
+        "metrics"
+    ],
+    "homepage": "https://github.com/lbg-sys/hyperf-apex-metrics",
+    "support": {
+        "issues": "https://github.com/lbg-sys/hyperf-apex-metrics/issues",
+        "source": "https://github.com/lbg-sys/hyperf-apex-metrics"
+    },
+    "authors": [
+        {
+            "name": "lbg-sys",
+            "homepage": "https://github.com/lbg-sys"
+        }
+    ],
+    "require": {
+        "php": ">=8.4",
+        "hyperf-apex/core": "^1.0",
+        "hyperf/memory": "~3.2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hyperf\\Apex\\Metrics\\": "src/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0.x-dev",
+            "dev-main": "1.0.x-dev"
+        },
+        "hyperf": {
+            "config": "Hyperf\\Apex\\Metrics\\ConfigProvider"
+        }
+    }
+}

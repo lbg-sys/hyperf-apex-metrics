@@ -15,7 +15,7 @@ use Throwable;
  * 会各自拿到不同的行键，同一个路由被拆成两条样本 —— Prometheus 会因重复序列直接报错。
  * 所以值域在 fork 之前一次算清，运行期只读。
  *
- * 取的是路由模板（`/api/visibility/admin/questions/get_list`）而不是原始 URL：
+ * 取的是路由模板（`/api/user/get_list`）而不是原始 URL：
  * 前者基数固定在一个有限集合内，后者带着 id、查询串进标签就是基数炸弹。
  */
 final class HttpRoutePathScanner

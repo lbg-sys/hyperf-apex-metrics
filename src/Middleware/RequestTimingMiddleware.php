@@ -165,7 +165,7 @@ final class RequestTimingMiddleware extends AbstractMiddleware
 
     /**
      * 排除名单只筛正常完成的请求。5xx 与向下游抛出的异常必须留痕：
-     * 否则被高频接口（如设备心跳上报）报错这件事会被静默，排障时无从下手。
+     * 否则被高频接口（如轮询、上报类接口）报错这件事会被静默，排障时无从下手。
      */
     private function shouldLog(
         ServerRequestInterface $request,

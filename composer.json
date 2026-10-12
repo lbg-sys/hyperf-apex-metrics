@@ -26,6 +26,9 @@
         "hyperf-apex/core": "^2.0",
         "hyperf/memory": "~3.2.0"
     },
+    "suggest": {
+        "hyperf-apex/websocket": "采集 WebSocket 连接数 / 空闲连接数 / 索引容量指标时需要；未安装时 WebSocketGaugeCollector 会被自动跳过"
+    },
     "autoload": {
         "psr-4": {
             "Hyperf\\Apex\\Metrics\\": "src/"

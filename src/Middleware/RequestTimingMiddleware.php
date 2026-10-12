@@ -7,6 +7,7 @@ namespace Hyperf\Apex\Metrics\Middleware;
 use Hyperf\Apex\Exception\ExceptionStatus;
 use Hyperf\Apex\Exception\ExpectedException;
 use Hyperf\Apex\Http\Middleware\AbstractMiddleware;
+use Hyperf\Apex\Logging\LoggerChannels;
 use Hyperf\Apex\Metrics\Metrics;
 use Hyperf\Apex\Metrics\Scanner\HttpRoutePathScanner;
 use Hyperf\Contract\ConfigInterface;
@@ -41,7 +42,7 @@ final class RequestTimingMiddleware extends AbstractMiddleware
 
     public function __construct(LoggerFactory $loggerFactory, ConfigInterface $config)
     {
-        $this->logger = $loggerFactory->get('http', 'access');
+        $this->logger = LoggerChannels::resolve($loggerFactory, 'http', 'access');
         $this->excludePatterns = self::parsePatterns($config->get('access_log.exclude', []));
     }
 

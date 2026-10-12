@@ -78,6 +78,9 @@ return [
     /*
      * 采样采集器。每个采集器返回一组 gauge，结果按 gauge_cache_ttl_seconds 复用；
      * 单个采集器抛错只丢它自己的样本，不影响其余指标与整个端点。
+     *
+     * WebSocketGaugeCollector 依赖可选的 hyperf-apex/websocket：未安装时它连类都不存在，
+     * 注册处按 class_exists 过滤后自动跳过，不必手工删这一行。
      */
     'collectors' => [
         WebSocketGaugeCollector::class,

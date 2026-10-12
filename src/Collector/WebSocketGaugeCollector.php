@@ -6,6 +6,7 @@ namespace Hyperf\Apex\Metrics\Collector;
 
 use Hyperf\Apex\Support\Time;
 use Hyperf\Apex\WebSocket\Contract\WsConnectionStoreInterface;
+use Hyperf\Apex\WebSocket\Contract\WsRoomStoreInterface;
 use Hyperf\Contract\ConfigInterface;
 use Throwable;
 
@@ -27,6 +28,8 @@ final class WebSocketGaugeCollector implements GaugeCollectorInterface
 {
     public function __construct(
         private readonly WsConnectionStoreInterface $store,
+        // 房间索引可能不在共享内存里（websocket.room_store_driver=redis），因此单独取一份契约。
+        private readonly WsRoomStoreInterface $roomStore,
         private readonly ConfigInterface $config,
     ) {
     }
@@ -44,7 +47,7 @@ final class WebSocketGaugeCollector implements GaugeCollectorInterface
                 ),
                 new GaugeSample('core_ws_idle_connections', '空闲连接数（超过 websocket.idle_timeout 未收到消息、等待回收）', [], $this->idleConnections()),
                 new GaugeSample('core_ws_online_users', '当前 WebSocket 在线用户数', [], $this->store->countUsers()),
-                new GaugeSample('core_ws_rooms', '当前 WebSocket 房间数', [], $this->store->countRooms()),
+                new GaugeSample('core_ws_rooms', '当前 WebSocket 房间数', [], $this->roomStore->countRooms()),
             ];
         } catch (Throwable) {
             // 索引表不存在（未启用网关、未启动 server）或读失败：整组不输出。

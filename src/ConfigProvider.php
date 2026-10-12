@@ -42,7 +42,7 @@ class ConfigProvider
             'publish' => [
                 [
                     'id' => 'config',
-                    'description' => 'The configuration files for apex metrics suite.',
+                    'description' => 'apex 指标套件的配置模板。',
                     'source' => __DIR__ . '/../publish/',
                     'destination' => BASE_PATH . '/config/autoload/',
                 ],

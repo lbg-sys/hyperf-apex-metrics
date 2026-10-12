@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hyperf\Apex\Metrics\Collector;
 
+use Hyperf\Apex\Support\Time;
 use Hyperf\Apex\WebSocket\Contract\WsConnectionStoreInterface;
 use Hyperf\Contract\ConfigInterface;
 use Throwable;
@@ -65,6 +66,6 @@ final class WebSocketGaugeCollector implements GaugeCollectorInterface
         }
 
         // 与连接索引同一口径：活跃时间早于「现在 - 回收时限」的连接即为空闲。
-        return count($this->store->idleConnections(time() - $idleTimeout));
+        return count($this->store->idleConnections(Time::now()->getTimestamp() - $idleTimeout));
     }
 }

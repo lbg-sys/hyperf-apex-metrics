@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Hyperf\Apex\Metrics\Pool;
 
+use Hyperf\Apex\Support\Time;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\DbConnection\Pool\PoolFactory as DbPoolFactory;
@@ -56,7 +57,7 @@ final class PoolSnapshot
             }
 
             $values = self::values();
-            $now = time();
+            $now = Time::now()->getTimestamp();
             if ($values === self::$lastValues && $now - self::$lastReportAt < self::REPORT_INTERVAL_SECONDS) {
                 return;
             }

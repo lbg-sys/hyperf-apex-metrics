@@ -6,6 +6,7 @@ namespace Hyperf\Apex\Metrics\Pool;
 
 use Hyperf\Apex\Metrics\Collector\GaugeCollectorInterface;
 use Hyperf\Apex\Metrics\Collector\GaugeSample;
+use Hyperf\Apex\Support\Time;
 use Hyperf\Contract\ConfigInterface;
 
 /**
@@ -37,7 +38,7 @@ final class PoolGaugeCollector implements GaugeCollectorInterface
         }
 
         $rows = PoolSnapshotTable::rows();
-        $expiredBefore = time() - max(10, (int) $this->config->get('metrics.pool_snapshot_ttl_seconds', 30));
+        $expiredBefore = Time::now()->getTimestamp() - max(10, (int) $this->config->get('metrics.pool_snapshot_ttl_seconds', 30));
 
         $samples = [];
         foreach ($poolNames as $index => $poolName) {

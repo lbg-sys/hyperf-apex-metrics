@@ -87,7 +87,8 @@ final class GaugeCollectorRegistry
      */
     public function collect(): array
     {
-        $now = microtime(true);
+        // 缓存 TTL 是「时长」而不是「时间点」：用单调时钟，墙上时钟回拨不会让缓存提前失效。
+        $now = hrtime(true) / 1e9;
         if ($this->cached !== null && ($now - $this->cachedAt) < $this->ttl) {
             return $this->cached;
         }

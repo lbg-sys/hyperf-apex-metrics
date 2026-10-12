@@ -10,6 +10,7 @@ use Hyperf\Apex\Metrics\Overview\MetricAggregator;
 use Hyperf\Apex\Metrics\Overview\OverviewComposer;
 use Hyperf\Apex\Metrics\Storage\MetricTable;
 use Hyperf\Apex\Metrics\Storage\RateSampleTable;
+use Hyperf\Apex\Support\Time;
 use Hyperf\Contract\ConfigInterface;
 
 /**
@@ -36,7 +37,7 @@ final class MetricsOverviewService
 
     public function overview(): MetricsOverviewDTO
     {
-        $now = time();
+        $now = Time::now()->getTimestamp();
         $current = MetricAggregator::aggregate(
             MetricTable::registry(),
             MetricTable::snapshot(),
